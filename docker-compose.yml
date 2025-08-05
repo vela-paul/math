@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: math_ops
+      POSTGRES_USER: mathuser
+      POSTGRES_PASSWORD: mathpass
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mathuser -d math_ops"]
+      interval: 5s
+      retries: 5
+
+  web:
+    build: .
+    environment:
+      - DATABASE_URL=postgresql://mathuser:mathpass@db:5432/math_ops
+    command: >
+      sh -c "alembic upgrade head && uvicorn src.app:app --host 0.0.0.0 --port 8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    env_file:
+      - ./.env
+
+volumes:
+  db_data:
